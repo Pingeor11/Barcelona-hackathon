@@ -12,7 +12,6 @@ jupyter notebook notebooks/01_load_data.ipynb
 - `possession/load_data.py` reads the match into numpy/pandas: ball and player positions in metres, team per track, Smart Tagging, homography and the public 5-minute ground truth. Row `i` is video frame `i`, the same as a submission row.
 - `notebooks/01_load_data.ipynb` walks through it with plots.
 
-The match data isn't in this repo; it comes from the challenge enrolment. Put it in `data/` (with `tactical/` and `broadcast/` inside), next to the repo in `../data`, or point `MTAH_DATA_DIR` at it. `data/` and `cache/` are gitignored. Never commit match data.
 
 ## Open Bundesliga data (for training)
 
