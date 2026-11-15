@@ -10,7 +10,7 @@ import pandas as pd
 from possession.baseline_pipeline import ClosestTeamRuleModel, graded_mask, slot_team_map
 from games import asset_paths
 from starter.load_smart_tagging import load as load_smart_tagging
-from possession.calculations.features import build_engineered_features
+from possession.pipeline import build_evidence_table as build_engineered_features
 from possession.temporal_rules import (
     add_anchor_features,
     add_reachability_features,

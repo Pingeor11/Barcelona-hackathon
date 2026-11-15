@@ -45,7 +45,7 @@ from possession.temporal_rules import (
 from possession.baseline_pipeline import slot_team_map
 from games import asset_paths
 from starter.load_smart_tagging import load as load_smart_tagging
-from possession.calculations.features import build_engineered_features
+from possession.pipeline import build_evidence_table as build_engineered_features
 
 
 ROOT = Path(__file__).resolve().parents[1]

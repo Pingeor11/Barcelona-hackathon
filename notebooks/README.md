@@ -21,6 +21,20 @@ The [appendix/](./appendix/) folder contains supporting definitions, the
 organiser-facing evidence report, the rule-book detail, retired experiments,
 and the sample-data restart audit. It is not required for the main walkthrough.
 
+## Helper-first execution
+
+The notebooks call the public pipeline helpers rather than reimplementing calculations:
+
+```python
+from possession.pipeline import build_evidence_table, detect_scenarios, run_decision_pipeline
+
+features = build_evidence_table()
+features = detect_scenarios(features)
+features, labels = run_decision_pipeline(features)
+```
+
+Plots are audit views over the same feature table. A visual observation is not a hand-written label.
+
 ## Implementation
 
 The notebook does not duplicate the detailed theory. Reusable functions live in:
