@@ -8,6 +8,10 @@ data/
 # parsed caches derived from the match data
 cache/
 
+# local evaluation outputs and public labels
+evaluation/gt/
+evaluation/reports/
+
 # open Bundesliga downloads
 open_data/
 
