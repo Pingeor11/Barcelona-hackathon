@@ -9,7 +9,12 @@ import pandas as pd
 from games import asset_paths
 from starter.load_smart_tagging import load as load_smart_tagging
 
-from possession.baseline_pipeline import ClosestTeamRuleModel, graded_mask, slot_team_map
+from possession.baseline_pipeline import (
+    ClosestTeamRuleModel,
+    add_match_time_columns,
+    graded_mask,
+    slot_team_map,
+)
 from possession.temporal_rules import (
     add_anchor_features,
     add_anchor_forecast_features,
@@ -31,6 +36,7 @@ from possession.temporal_rules import (
     load_rules,
 )
 from possession.decoder_experiments import add_scenario_episode_features, classify_scenarios
+from possession.calculations.scenario_evidence import add_scenario_evidence_features
 
 
 def build_engineered_features(
@@ -46,6 +52,9 @@ def build_engineered_features(
     rules = load_rules() if rules is None else rules
     model = ClosestTeamRuleModel() if model is None else model
     features, _ = model.build_features()
+    # Keep the kickoff-anchored analytical clock available to every downstream
+    # model and diagnostic.  This is the match clock, not the video clock.
+    features = add_match_time_columns(features, game=model.game)
     paths = asset_paths()
     temporal = add_temporal_features(features, rules)
     temporal = add_reachability_features(temporal, slot_team_map(paths["atd_meta"]), rules)
@@ -67,4 +76,10 @@ def build_engineered_features(
     temporal["scenario_context"] = classify_scenarios(temporal)
     temporal["scenario_context_causal"] = classify_scenarios(temporal, causal=True)
     temporal = apply_anchor_hierarchy(temporal, rules)
-    return add_scenario_episode_features(temporal)
+    temporal = add_scenario_episode_features(temporal)
+    # Keep linked player-path evidence model-agnostic.  Every decoder sees the
+    # same scenario observations; it decides how strongly to use them.
+    return add_scenario_evidence_features(
+        temporal, slot_team_map(paths["atd_meta"]),
+        radius_m=float(rules.get("pitch", {}).get("scenario_player_radius_m", 12.0)),
+    )

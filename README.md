@@ -8,29 +8,23 @@ The pipeline is intentionally thin. Use the public façade in `possession/pipeli
 
 - `build_evidence_table()` — load the supplied data and calculate the complete frame-level feature table;
 - `detect_scenarios()` — attach scenario confidence and episode evidence;
-- `select_model()` — choose one registered model specification;
+- `select_model()` — choose one registered model specification, including the evaluated physics-veto candidate;
 - `run_decision_pipeline()` — pass the feature table and scenario evidence to that selected model function;
 - `PipelineSpec` — declare the decision policy without duplicating implementation code.
 
 Lower-level calculations remain in `possession/calculations/`, scenario rules in `possession/scenarios/`, and model composition in `possession/models/`. The notebooks are presentation and audit clients of these helpers; they should not become a second implementation of the pipeline.
 
-## Modular implementation
+## Layered architecture
 
-The notebooks call a thin canonical runner; the runner composes three stages and keeps their implementations reusable:
+The pipeline keeps evidence construction separate from decision policy:
 
-- `ClosestTeamRuleModel.build_features()` — load data, audit empty columns, calculate frame time and player/ball distances;
-- `add_temporal_features()` — lagged, rolling, persistence, ball movement, and pressure signals;
-- `add_reachability_features()` — closing speed, projected path, arrival time, and arrival margin;
-- `add_anchor_features()` and `add_special_anchor_features()` — stable H/A and restart evidence;
-- `apply_anchor_hierarchy()` — choose restart control, pressure control, stable control, or no anchor in configured order;
-- `PipelineSpec` and `apply_pipeline_spec()` — choose anchors, scenarios, transitions, decoders, and protection rules per benchmark;
-- `add_reception_signal_features()` — local minima, deceleration, persistence, and receiver agreement;
-- `classify_scenarios()` and `build_scenario_episodes()` — scenario context and connected trajectories;
-- `dead_ball_boundary_evidence()` — protect D using Smart Tagging plus physical activity evidence;
-- `resolve_aligned_reception_switch()` — bounded bidirectional reception-based switch resolution;
-- `run_evaluation.py` — display public sanity metrics without fitting on public labels.
+1. **Measurement layer** — load the supplied tracking/Smart Tagging data and build one shared frame-level evidence table.
+2. **Scenario layer** — combine the modular measurements into scenario context and confidence signals.
+3. **Anchor/transition layer** — identify stable H/A/D evidence and resolve uncertain intervals conservatively.
+4. **Model layer** — the model selector chooses how the shared evidence is handled. Direct policies use rules; decoder policies such as Viterbi/HMM add a transition model over the same evidence.
+5. **Evaluation layer** — write the selected submission and score it only when the appropriate ground truth is available.
 
-Thresholds and windows are configuration-backed in `config/possession_rules.yaml`. Decoder alternatives are registered in `possession/models/pipelines.py`: `none`, `viterbi`, `selective_viterbi`, `hmm`, `hsmm`, `bayesian_hmm`, and `duration_viterbi`.
+The runner is deliberately thin: it calls the reusable helpers, passes their shared evidence to one selected model policy, and returns frame-aligned labels. The notebooks are the organiser-facing explanation of the observations; helper modules contain the implementation.
 
 ## Loading the data
 

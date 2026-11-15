@@ -15,11 +15,14 @@ import pandas as pd
 
 from possession.baseline_pipeline import graded_mask
 from possession.decoder_experiments import (
+    _remove_short_dead_runs,
+    scenario_gated_labels,
     dead_ball_boundary_evidence,
     duration_aware_scenario_decode,
     literal_out_of_bounds_dead_ball_evidence,
     resolve_aligned_reception_switch,
 )
+from possession.scenario_decoder import decode_scenario_labels
 from possession.sequence_models import (
     AnchorInitializedHMM,
     AnchorInitializedHSMM,
@@ -39,6 +42,7 @@ class PipelineSpec:
     use_dead_ball_boundary: bool = True
     use_literal_out_of_bounds: bool = False
     transition_rule: str = "aligned_reception"
+    use_physics_veto: bool = False
     decoder: str = "none"
     protect_dead_ball: bool = True
     protect_outside_graded: bool = True
@@ -49,6 +53,10 @@ def available_pipeline_specs() -> dict[str, PipelineSpec]:
     return {
         "protected_aligned_reception": PipelineSpec(
             name="protected_aligned_reception",
+        ),
+        "aligned_physics_veto": PipelineSpec(
+            name="aligned_physics_veto",
+            use_physics_veto=True,
         ),
         "stable_anchor_only": PipelineSpec(
             name="stable_anchor_only",
@@ -133,7 +141,48 @@ def apply_pipeline_spec(
             boundary_tolerance=float(evidence["out_of_bounds_boundary_tolerance"]),
         )
     if spec.transition_rule == "aligned_reception":
-        labels = resolve_aligned_reception_switch(features, labels)
+        # Reuse the established aligned-reception baseline handling. All model
+        # variants receive the same engineered evidence and scenarios; the
+        # spec changes only how those observations are converted into labels.
+        interpolated = features.copy()
+        if "recent_flight_evidence_interpolated" in interpolated:
+            interpolated["recent_flight_evidence"] = interpolated["recent_flight_evidence_interpolated"]
+        if "ball_flight_candidate_interpolated" in interpolated:
+            interpolated["ball_flight_candidate"] = interpolated["ball_flight_candidate_interpolated"]
+        labels = scenario_gated_labels(
+            interpolated,
+            allow_receiver_switch=True,
+            allow_bidirectional_bridge=True,
+            receiver_horizon_frames=75,
+            maximum_internal_spike=75,
+        )
+        scenario_labels, _ = decode_scenario_labels(interpolated, rules)
+        dead_support = (
+            interpolated.get("graded", pd.Series(False, index=interpolated.index)).to_numpy(bool)
+            & interpolated.get("smart_set_piece", pd.Series(False, index=interpolated.index)).to_numpy(bool)
+            & (scenario_labels == "D")
+            & interpolated.get("scenario_context", pd.Series("UNKNOWN", index=interpolated.index)).isin(
+                ["DEAD", "UNKNOWN", "OCCLUDED"]
+            ).to_numpy(bool)
+        )
+        labels[dead_support] = "D"
+        labels = _remove_short_dead_runs(labels, minimum_run=25)
+        labels = dead_ball_boundary_evidence(
+            interpolated,
+            labels,
+            low_activity_median_mps=float(rules["dead_ball_evidence"]["low_activity_median_mps"]),
+            low_activity_p90_mps=float(rules["dead_ball_evidence"]["low_activity_p90_mps"]),
+            minimum_low_motion_frames=int(rules["dead_ball_evidence"]["minimum_low_motion_frames"]),
+            maximum_out_of_bounds_bridge_frames=int(rules["dead_ball_evidence"]["maximum_out_of_bounds_bridge_frames"]),
+        )
+        labels = resolve_aligned_reception_switch(
+            interpolated,
+            labels,
+            max_anchor_gap_frames=75,
+            minimum_anchor_confidence=0.85,
+            minimum_reception_score=0.55,
+            use_physics_veto=spec.use_physics_veto,
+        )
     elif spec.transition_rule not in {"none", "aligned_reception"}:
         raise ValueError(f"Unknown transition rule: {spec.transition_rule}")
     if spec.decoder == "duration_viterbi":
@@ -156,10 +205,6 @@ def apply_pipeline_spec(
     if spec.protect_dead_ball and "smart_set_piece" in features:
         set_piece = features["smart_set_piece"].fillna(False).to_numpy(bool)
         labels[graded & set_piece] = "D"
-    if spec.anchor_source in features:
-        teams = features[spec.anchor_source].to_numpy(object)
-        for team in ("H", "A"):
-            labels[graded & (teams == team)] = team
     if spec.protect_outside_graded:
         labels[~graded] = "X"
     return labels.astype("<U1")

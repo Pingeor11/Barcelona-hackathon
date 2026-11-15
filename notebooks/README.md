@@ -4,10 +4,10 @@ Read the notebooks in this order:
 
 0. [00_load_data.ipynb](./00_load_data.ipynb) — locate the problem-repository data directory and load the shared data objects.
 1. [01_eda.ipynb](./01_eda.ipynb) — data, public five-minute scope, Smart Tagging value and limits.
-2. [02_feature_engineering.ipynb](./02_feature_engineering.ipynb) — geometry, speed, acceleration, pressure, reachability and missing-ball evidence.
+2. [02_feature_engineering.ipynb](./02_feature_engineering.ipynb) — modular geometry, speed, acceleration, distance-per-kick, and missing-ball signals.
 3. [03_scenario_engineering.ipynb](./03_scenario_engineering.ipynb) — dead ball, control, flight, reception, long-ball and contested scenarios.
 4. [04_anchors_rulebook.ipynb](./04_anchors_rulebook.ipynb) — observable evidence for easy H/A/D anchors.
-5. [05_transition_markers.ipynb](./05_transition_markers.ipynb) — transition windows and unresolved contest evidence.
+5. [05_transition_markers.ipynb](./05_transition_markers.ipynb) — dead-ball/restart handling, transition windows, and unresolved contest evidence.
 6. [06_viterbi_model.ipynb](./06_viterbi_model.ipynb) — sequence decoding after evidence engineering.
 7. [07_run_pipeline.ipynb](./07_run_pipeline.ipynb) — reproducible pipeline execution.
 8. [08_experimental_results.ipynb](./08_experimental_results.ipynb) — comparison of models, scenarios and rejected experiments.
@@ -17,7 +17,7 @@ H/A/D labels is the bottleneck. No fixed D hold duration is used.
 
 ## Appendix
 
-The [appendix/](./appendix/) folder contains supporting definitions, the
+The [appendix/](./appendix/) folder contains the detailed visual findings appendix and supporting definitions, the
 organiser-facing evidence report, the rule-book detail, retired experiments,
 and the sample-data restart audit. It is not required for the main walkthrough.
 
@@ -30,7 +30,7 @@ from possession.pipeline import build_evidence_table, detect_scenarios, run_deci
 
 features = build_evidence_table()
 features = detect_scenarios(features)
-model = select_model("protected_aligned_reception")
+model = select_model("aligned_physics_veto")
 features, labels = run_decision_pipeline(features, spec=model)
 ```
 

@@ -1,5 +1,4 @@
-# match data (licensed, never commit)
-data/
+# match data (licensed, never commit; keep the directory structure and metadata)
 *.mp4
 *.csv
 *.txt
@@ -20,6 +19,10 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .DS_Store
+.vscode/
 
 # local/private diagnostic notebooks
 notebooks/private/
+
+# staging files for data processing
+stage/

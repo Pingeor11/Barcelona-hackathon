@@ -16,6 +16,33 @@ import pandas as pd
 PITCH_LENGTH_M = 105.3
 PITCH_WIDTH_M = 68.0
 
+def _apply_frame_time_axis(
+    ax,
+    *,
+    fps: float = 25.0,
+    frame_to_match_clock: Mapping[int, float] | None = None,
+) -> None:
+    """Show tactical frames with the kickoff-anchored match clock underneath."""
+    from matplotlib.ticker import FuncFormatter
+
+    def format_tick(value, _position):
+        frame = int(round(value))
+        if frame_to_match_clock:
+            keys = np.asarray(list(frame_to_match_clock), dtype=float)
+            vals = np.asarray([frame_to_match_clock[int(key)] for key in keys], dtype=float)
+            seconds = float(np.interp(value, keys, vals))
+        else:
+            seconds = max(0, value / fps)
+        if seconds < 0:
+            clock = f"pre-kickoff ({seconds:.1f}s)"
+        else:
+            clock = f"{int(seconds // 60):02d}:{seconds % 60:04.1f}"
+        return f"{frame}\n({clock})"
+
+    ax.xaxis.set_major_formatter(FuncFormatter(format_tick))
+    ax.set_xlabel("tactical frame\n(match clock from first kickoff)")
+
+
 
 def _metres(values: pd.Series, scale: float) -> pd.Series:
     """Convert normalised ATD coordinates to metres, preserving missing values."""
@@ -477,7 +504,11 @@ def plot_evidence_window(
         ax=pitch_ax,
     )
     timeline_ax.set_title("Evidence timeline — observations, not hand-written labels")
-    timeline_ax.set_xlabel("tactical frame")
+    _apply_frame_time_axis(
+        timeline_ax,
+        frame_to_match_clock=dict(zip(window["frame"].astype(int), window["match_clock_s"].astype(float)))
+        if "match_clock_s" in window else None,
+    )
     timeline_ax.set_yticks([0, 1, 1.78])
     timeline_ax.set_yticklabels(["Away", "Home", "Ground truth"])
     timeline_ax.set_ylim(-0.5, 2.1)
@@ -574,7 +605,11 @@ def plot_timeline_window(
     if ax is None:
         _, ax = plt.subplots(figsize=(13, 3.5))
     ax.set_title("Evidence timeline — observations, not hand-written labels")
-    ax.set_xlabel("tactical frame")
+    _apply_frame_time_axis(
+        ax,
+        frame_to_match_clock=dict(zip(window["frame"].astype(int), window["match_clock_s"].astype(float)))
+        if "match_clock_s" in window else None,
+    )
     ax.set_yticks([0, 0.5, 1, 1.78])
     ax.set_yticklabels(["Away", "Dead / unavailable", "Home", "Ground truth"])
     ax.set_ylim(-0.5, 2.1)
