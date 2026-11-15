@@ -4,18 +4,19 @@ Our entry for [More than a Hack 2027](https://github.com/metrica-sports/more-tha
 
 ## Public helper API
 
-The pipeline is intentionally layered. Use the public façade in `possession/pipeline.py` from notebooks and scripts:
+The pipeline is intentionally thin. Use the public façade in `possession/pipeline.py` from notebooks and scripts; it only composes feature construction, scenario detection, and model application:
 
 - `build_evidence_table()` — load the supplied data and calculate the complete frame-level feature table;
 - `detect_scenarios()` — attach scenario confidence and episode evidence;
-- `run_decision_pipeline()` — apply the configured anchor, transition, and decoder policy;
+- `select_model()` — choose one registered model specification;
+- `run_decision_pipeline()` — pass the feature table and scenario evidence to that selected model function;
 - `PipelineSpec` — declare the decision policy without duplicating implementation code.
 
 Lower-level calculations remain in `possession/calculations/`, scenario rules in `possession/scenarios/`, and model composition in `possession/models/`. The notebooks are presentation and audit clients of these helpers; they should not become a second implementation of the pipeline.
 
 ## Modular implementation
 
-The notebooks call the canonical runner; the runner composes reusable functions:
+The notebooks call a thin canonical runner; the runner composes three stages and keeps their implementations reusable:
 
 - `ClosestTeamRuleModel.build_features()` — load data, audit empty columns, calculate frame time and player/ball distances;
 - `add_temporal_features()` — lagged, rolling, persistence, ball movement, and pressure signals;

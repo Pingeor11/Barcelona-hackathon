@@ -23,14 +23,15 @@ and the sample-data restart audit. It is not required for the main walkthrough.
 
 ## Helper-first execution
 
-The notebooks call the public pipeline helpers rather than reimplementing calculations:
+The notebooks call the public pipeline helpers rather than reimplementing calculations. The pipeline is deliberately only three calls: features, scenarios, then model:
 
 ```python
-from possession.pipeline import build_evidence_table, detect_scenarios, run_decision_pipeline
+from possession.pipeline import build_evidence_table, detect_scenarios, run_decision_pipeline, select_model
 
 features = build_evidence_table()
 features = detect_scenarios(features)
-features, labels = run_decision_pipeline(features)
+model = select_model("protected_aligned_reception")
+features, labels = run_decision_pipeline(features, spec=model)
 ```
 
 Plots are audit views over the same feature table. A visual observation is not a hand-written label.
