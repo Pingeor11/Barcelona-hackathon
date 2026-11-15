@@ -1,6 +1,9 @@
 # match data (licensed, never commit)
 data/
 *.mp4
+*.csv
+*.txt
+*.xml
 
 # parsed caches derived from the match data
 cache/

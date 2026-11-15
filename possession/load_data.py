@@ -134,7 +134,7 @@ def load_match(game=GAME, data_dir=None, refresh=False):
         half[first:last + 1] = number
 
     homography, _, homography_valid = load_homography.load(game, data_dir)
-    gt_public = pd.read_csv(PUBLIC_GT)["label"].astype(str).values
+    gt_public = (pd.read_csv(PUBLIC_GT)["label"].astype(str).values if os.path.exists(PUBLIC_GT) else np.full(n_frames, "X", dtype=str))
 
     return Match(
         ball_xy=ball_xy, ball_speed=table[:, -1], players_xy=players_xy,
