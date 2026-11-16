@@ -1,0 +1,7 @@
+# on top of the repository's requirements.txt
+torch==2.9.0            # video ball detector (MPS on Apple silicon; CUDA works too)
+scikit-learn==1.8.0     # carrier classifier, stoppage model, tracklet verifier
+scipy==1.17.1
+opencv-python==4.12.0.88
+statsmodels==0.15.0     # tsfill.py (ARIMA baseline) only
+# prophet               # tsfill.py (Prophet baseline) only
